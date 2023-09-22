@@ -10,6 +10,7 @@ class TypeWriter extends StatefulWidget {
   final String text;
   final TextStyle textStyle;
   final Color cursorColor;
+  final VoidCallback? onComplete;
 
   const TypeWriter({
     super.key,
@@ -19,6 +20,7 @@ class TypeWriter extends StatefulWidget {
     required this.text,
     required this.textStyle,
     required this.cursorColor,
+    required this.onComplete,
   });
 
   @override
@@ -59,6 +61,12 @@ class _TypeWriterState extends State<TypeWriter> {
         _typedText = _textToType.substring(0, i + 1);
       });
     }
+
+    // wait for the next line
+    await Future.delayed(const Duration(seconds: 2));
+    if (context.mounted) {
+      widget.onComplete?.call();
+    }
   }
 
   /// Gives us a more natural typing speed
@@ -68,6 +76,19 @@ class _TypeWriterState extends State<TypeWriter> {
       _maxTypingDelay,
       Random().nextDouble(),
     );
+  }
+
+  @override
+  void didUpdateWidget(covariant TypeWriter oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (widget.text != oldWidget.text) {
+      _textToType = widget.text;
+      _nextIndex = 0;
+      _typedText = '';
+
+      _typeNewText();
+    }
   }
 
   @override
