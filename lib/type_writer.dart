@@ -1,3 +1,6 @@
+import 'dart:math';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class TypeWriter extends StatefulWidget {
@@ -23,6 +26,9 @@ class TypeWriter extends StatefulWidget {
 }
 
 class _TypeWriterState extends State<TypeWriter> {
+  static const _minTypingDelay = Duration(milliseconds: 20);
+  static const _maxTypingDelay = Duration(milliseconds: 200);
+
   late String _textToType;
   late int _nextIndex;
   late String _typedText;
@@ -38,19 +44,30 @@ class _TypeWriterState extends State<TypeWriter> {
     _typeNewText();
   }
 
+  /// Logic behind typing
   Future<void> _typeNewText() async {
+    // initial wait
     await Future.delayed(const Duration(seconds: 1));
     if (!context.mounted) return;
 
     // type the text
     for (int i = _nextIndex; i < _textToType.length; i++) {
-      await Future.delayed(const Duration(milliseconds: 50));
+      await Future.delayed(_generateTypingDuration());
       if (!context.mounted) return;
 
       setState(() {
         _typedText = _textToType.substring(0, i + 1);
       });
     }
+  }
+
+  /// Gives us a more natural typing speed
+  Duration _generateTypingDuration() {
+    return lerpDuration(
+      _minTypingDelay,
+      _maxTypingDelay,
+      Random().nextDouble(),
+    );
   }
 
   @override
