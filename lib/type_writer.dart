@@ -34,6 +34,7 @@ class _TypeWriterState extends State<TypeWriter> {
   late String _textToType;
   late int _nextIndex;
   late String _typedText;
+  late BlinkingCursorController _blinkingCursorController;
 
   @override
   void initState() {
@@ -42,6 +43,7 @@ class _TypeWriterState extends State<TypeWriter> {
     _textToType = widget.text;
     _nextIndex = 0;
     _typedText = '';
+    _blinkingCursorController = BlinkingCursorController();
 
     _typeNewText();
   }
@@ -55,6 +57,12 @@ class _TypeWriterState extends State<TypeWriter> {
 
       _typeNewText();
     }
+  }
+
+  @override
+  void dispose() {
+    _blinkingCursorController.dispose();
+    super.dispose();
   }
 
   /// Logic behind typing
@@ -103,6 +111,7 @@ class _TypeWriterState extends State<TypeWriter> {
       setState(() {
         _typedText = _typedText.substring(0, i);
         _nextIndex = i;
+        _blinkingCursorController.reset();
       });
     }
   }
@@ -114,6 +123,7 @@ class _TypeWriterState extends State<TypeWriter> {
 
       setState(() {
         _typedText = _textToType.substring(0, i + 1);
+        _blinkingCursorController.reset();
       });
     }
   }
@@ -142,15 +152,95 @@ class _TypeWriterState extends State<TypeWriter> {
           _typedText,
           style: widget.textStyle,
         ),
-        Text(
-          '|',
-          style: TextStyle(
-            color: widget.cursorColor,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+        BlinkingCursor(
+          color: widget.cursorColor,
+          fontSize: widget.textStyle.fontSize ?? 20,
+          blinkingCursorController: _blinkingCursorController,
         ),
       ],
     );
+  }
+}
+
+class BlinkingCursor extends StatefulWidget {
+  final double fontSize;
+  final Color color;
+  final BlinkingCursorController blinkingCursorController;
+  const BlinkingCursor({
+    super.key,
+    required this.fontSize,
+    required this.color,
+    required this.blinkingCursorController,
+  });
+
+  @override
+  State<BlinkingCursor> createState() => _BlinkingCursorState();
+}
+
+class _BlinkingCursorState extends State<BlinkingCursor>
+    with TickerProviderStateMixin {
+  static const pulsePeriod = Duration(milliseconds: 400);
+  late AnimationController _animationController;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _animationController = AnimationController(
+      vsync: this,
+      duration: pulsePeriod,
+    )
+      ..addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          _animationController.reverse();
+        } else if (status == AnimationStatus.dismissed) {
+          _animationController.forward();
+        }
+      })
+      ..forward();
+
+    widget.blinkingCursorController.addListener(_reset);
+  }
+
+  void _reset() {
+    _animationController.forward(from: 0.0);
+  }
+
+  @override
+  void didUpdateWidget(covariant BlinkingCursor oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (widget.blinkingCursorController != oldWidget.blinkingCursorController) {
+      oldWidget.blinkingCursorController.removeListener(_reset);
+      widget.blinkingCursorController.addListener(_reset);
+    }
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+        animation: _animationController,
+        builder: (context, _) {
+          return Text(
+            '|',
+            style: TextStyle(
+              color: widget.color.withOpacity(1 - _animationController.value),
+              fontSize: widget.fontSize,
+              fontWeight: FontWeight.bold,
+            ),
+          );
+        });
+  }
+}
+
+class BlinkingCursorController with ChangeNotifier {
+  void reset() {
+    notifyListeners();
   }
 }
