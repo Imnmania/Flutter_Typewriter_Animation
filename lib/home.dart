@@ -43,22 +43,24 @@ class _HomeScreenState extends State<HomeScreen> {
           color: Colors.black87,
         ),
         alignment: Alignment.topLeft,
-        child: TypeWriter(
-          prefix: '>',
-          prefixTextStyle: const TextStyle(
-            color: Colors.blueAccent,
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
+        child: RepaintBoundary(
+          child: TypeWriter(
+            prefix: '>',
+            prefixTextStyle: const TextStyle(
+              color: Colors.blueAccent,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+            spacingAfterPrefix: 8,
+            text: _flutterCommands[_currentCommandIndex],
+            textStyle: const TextStyle(
+              color: Colors.white70,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+            cursorColor: Colors.blue,
+            onComplete: _nextCommand,
           ),
-          spacingAfterPrefix: 8,
-          text: _flutterCommands[_currentCommandIndex],
-          textStyle: const TextStyle(
-            color: Colors.white70,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-          cursorColor: Colors.blue,
-          onComplete: _nextCommand,
         ),
       ),
     );

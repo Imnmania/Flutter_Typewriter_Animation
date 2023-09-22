@@ -46,13 +46,68 @@ class _TypeWriterState extends State<TypeWriter> {
     _typeNewText();
   }
 
+  @override
+  void didUpdateWidget(covariant TypeWriter oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (widget.text != oldWidget.text) {
+      _textToType = widget.text;
+
+      _typeNewText();
+    }
+  }
+
   /// Logic behind typing
   Future<void> _typeNewText() async {
     // initial wait
     await Future.delayed(const Duration(seconds: 1));
     if (!context.mounted) return;
 
+    // if there's text, delete first
+    final firstDifferentCharacter = _findFirstDifferentCharacter(
+      _textToType,
+      _typedText,
+    );
+    await _eraseToIndex(firstDifferentCharacter);
+    if (!context.mounted) return;
+
     // type the text
+    await _typeForward();
+
+    // wait for the next line
+    await Future.delayed(const Duration(seconds: 2));
+    if (context.mounted) {
+      widget.onComplete?.call();
+    }
+  }
+
+  /// Returns the first index where two strings differ
+  int _findFirstDifferentCharacter(String label1, String label2) {
+    int index = 0;
+
+    while (index < label1.length &&
+        index < label2.length &&
+        label1[index] == label2[index]) {
+      index += 1;
+    }
+
+    return index;
+  }
+
+  Future<void> _eraseToIndex(int index) async {
+    for (int i = _typedText.length - 1; i >= index; i--) {
+      await Future.delayed(const Duration(milliseconds: 40));
+
+      if (!context.mounted) return;
+
+      setState(() {
+        _typedText = _typedText.substring(0, i);
+        _nextIndex = i;
+      });
+    }
+  }
+
+  Future<void> _typeForward() async {
     for (int i = _nextIndex; i < _textToType.length; i++) {
       await Future.delayed(_generateTypingDuration());
       if (!context.mounted) return;
@@ -60,12 +115,6 @@ class _TypeWriterState extends State<TypeWriter> {
       setState(() {
         _typedText = _textToType.substring(0, i + 1);
       });
-    }
-
-    // wait for the next line
-    await Future.delayed(const Duration(seconds: 2));
-    if (context.mounted) {
-      widget.onComplete?.call();
     }
   }
 
@@ -76,19 +125,6 @@ class _TypeWriterState extends State<TypeWriter> {
       _maxTypingDelay,
       Random().nextDouble(),
     );
-  }
-
-  @override
-  void didUpdateWidget(covariant TypeWriter oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    if (widget.text != oldWidget.text) {
-      _textToType = widget.text;
-      _nextIndex = 0;
-      _typedText = '';
-
-      _typeNewText();
-    }
   }
 
   @override
